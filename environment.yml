@@ -1,0 +1,9 @@
+name: ml-dev
+
+dependencies:
+  - python=3.9
+  - ipykernel
+  - ipython
+  - numpy
+  - pandas
+  - scipy

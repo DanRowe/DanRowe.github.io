@@ -1,0 +1,19 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.117.1/containers/ubuntu-18.04-git
+{
+  "name": "ML Dev",
+  //"dockerFile": "Dockerfile",
+  "image": "mcr.microsoft.com/vscode/devcontainers/anaconda",
+
+  "postCreateCommand": "",
+
+  // Set *default* container specific settings.json values on container create.
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+
+  // Add the IDs of extensions you want installed when the container is created.
+  "extensions": ["ms-toolsai.jupyter", "ms-python.python", "ms-python.vscode-pylance"],
+
+  "mounts": []
+}
