@@ -1,5 +1,3 @@
-# To add a new cell, type '# %%'
-# To add a new markdown cell, type '# %% [markdown]'
 # %% [markdown]
 # # Analyzing State Vaccination Rate and 2020 Election Results
 #
@@ -90,7 +88,6 @@ elections.head()
 # %%
 states = [state.name for state in us.STATES]
 states.append("New York State")
-print(states)
 vaccinations = pd.DataFrame(
     vaccinations[vaccinations["location"].isin(states)])
 # %% [markdown]
