@@ -83,7 +83,7 @@ elections.head()
 for i, row in elections.iterrows():
     elections.at[i, row["party_simplified"]+"_votes"] = row["candidatevotes"]
 elections = elections.groupby("state").first().drop(
-    columns=["party_simplified", "candidatevotes"]).rename(columns={"state": "location"})
+    columns=["party_simplified", "candidatevotes"]).reset_index().rename(columns={"state": "location"})
 elections.head()
 # %% [markdown]
 # For vaccination data, we need to remove federal entities like the *Dept of Defense* to ensure the dataset is only states.
@@ -93,6 +93,22 @@ states.append("New York State")
 print(states)
 vaccinations = pd.DataFrame(
     vaccinations[vaccinations["location"].isin(states)])
+# %% [markdown]
+# Now let's add the election data to the vaccination dataset.
+# %%
+for i, row in vaccinations.iterrows():
+    location = row["location"].upper()
+    if (location == "NEW YORK STATE"):
+        location = "NEW YORK"
+    party = majority[majority["state"] == location]["p"].iloc[0]
+    vaccinations.at[i, "party"] = party
+    color = "green"
+    if (party == "REPUBLICAN"):
+        color = "red"
+    elif (party == "DEMOCRAT"):
+        color = "blue"
+    vaccinations.at[i, "color"] = color
+vaccinations.head()
 # %% [markdown]
 # Next, we need to make a dataset that contains the most recent data entry for convenience.
 # %%
@@ -111,12 +127,12 @@ sns.barplot(y=recentVax["location"],
             x=recentVax["people_fully_vaccinated"])
 plt.xlabel("People Fully Vaccinated")
 plt.ylabel("State")
-plt.title("People Fully Vaccinated Per State")
+plt.title("People Fully Vaccinated By State")
 plt.show()
 # %% [markdown]
 # From the above chart it appears as if California, Texas, and New York State are way better at making sure people are fully vaccinated. However, this does not consider that states with a smaller population aren't going to have as many people available to vaccinate.
 #
-# Because of this, we will look at the amount of people fully vaccinated per 100 people in the total population. This comparison levels the playing field by standardizing the data on the total population. 
+# Because of this, we will look at the amount of people fully vaccinated per 100 people in the total population. This comparison levels the playing field by standardizing the data on the total population.
 # %%
 recentVax = recentVax.sort_values(
     by=["people_fully_vaccinated_per_hundred"], ascending=False)
@@ -125,10 +141,20 @@ sns.barplot(y=recentVax["location"],
             x=recentVax["people_fully_vaccinated_per_hundred"])
 plt.xlabel("People Fully Vaccinated per 100 People")
 plt.ylabel("State")
-plt.title("People Fully Vaccinated Per 100 People Per State")
+plt.title("People Fully Vaccinated Per 100 People By State")
 plt.show()
 # %% [markdown]
 # From the above chart, we see a dramatically different picture than the first comparison. Here we can see that there's a more gradual difference between the the amount of people fully vaccinated in each state. More importantly, we can see that the leaders of states that are fully vaccinated have changed. Maine, Connecticut, Vermont, Massachusetts, and Rhode Island have the highest amount of people fully vaccinated per 100 people in their population.
+# %% [markdown]
+# Now, let's take a look at the rate at which each state administered the vaccination.
+# %%
+vaccinations.pivot(index="date", columns="location",
+                   values="daily_vaccinations_per_million").plot(subplots=True, sharey=True, layout=(10, 5), figsize=(25, 25))
+plt.ylabel("People Vaccinated Per Million")
+plt.xlabel("Day")
+plt.show()
+# %% [markdown]
+# Now we need to calculate averages to figure out stuff to compare easy
 # %% [markdown]
 # ## 5. Hypothesis Testing and Machine Learning
 # %% [markdown]
