@@ -29,11 +29,13 @@
 # - Numpy: Used for calculations
 # - Matplotlib: Data visualization
 # - Scikit-learn: To create a predictive model
+# - [us](https://github.com/unitedstates/python-us): Detailed state information
 # %%
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from pandas.core.frame import DataFrame
+import seaborn as sns
+import us
 import sklearn
 from sklearn.linear_model import LinearRegression
 # %% [markdown]
@@ -56,8 +58,8 @@ elections.head()
 #
 # Mathieu, E., Ritchie, H., Ortiz-Ospina, E. et al. A global database of COVID-19 vaccinations. Nat Hum Behav (2021). https://doi.org/10.1038/s41562-021-01122-8
 # %%
-stateVaccines = pd.read_csv("./data/us_state_vaccinations.csv")
-stateVaccines.info()
+vaccinations = pd.read_csv("./data/us_state_vaccinations.csv")
+vaccinations.info()
 # %% [markdown]
 # ### 3.2. Tidying the Data
 # %% [markdown]
@@ -84,7 +86,49 @@ elections = elections.groupby("state").first().drop(
     columns=["party_simplified", "candidatevotes"]).rename(columns={"state": "location"})
 elections.head()
 # %% [markdown]
+# For vaccination data, we need to remove federal entities like the *Dept of Defense* to ensure the dataset is only states.
+# %%
+states = [state.name for state in us.STATES]
+states.append("New York State")
+print(states)
+vaccinations = pd.DataFrame(
+    vaccinations[vaccinations["location"].isin(states)])
+# %% [markdown]
+# Next, we need to make a dataset that contains the most recent data entry for convenience.
+# %%
+idx = vaccinations.groupby("location")["date"].transform(
+    max) == vaccinations["date"]
+recentVax = vaccinations[idx]
+recentVax.info()
+# %% [markdown]
 # ## 4. Exploratory Data Analysis
+# Now that the data is easier to manipulate, lets explore the vaccination data and the relationships between different columns. We'll start by looking at the amount of people fully vaccinated in each state.
+# %%
+recentVax = recentVax.sort_values(
+    by=["people_fully_vaccinated"], ascending=False)
+plt.figure(figsize=(8, 32))
+sns.barplot(y=recentVax["location"],
+            x=recentVax["people_fully_vaccinated"])
+plt.xlabel("People Fully Vaccinated")
+plt.ylabel("State")
+plt.title("People Fully Vaccinated Per State")
+plt.show()
+# %% [markdown]
+# From the above chart it appears as if California, Texas, and New York State are way better at making sure people are fully vaccinated. However, this does not consider that states with a smaller population aren't going to have as many people available to vaccinate.
+#
+# Because of this, we will look at the amount of people fully vaccinated per 100 people in the total population. This comparison levels the playing field by standardizing the data on the total population. 
+# %%
+recentVax = recentVax.sort_values(
+    by=["people_fully_vaccinated_per_hundred"], ascending=False)
+plt.figure(figsize=(8, 32))
+sns.barplot(y=recentVax["location"],
+            x=recentVax["people_fully_vaccinated_per_hundred"])
+plt.xlabel("People Fully Vaccinated per 100 People")
+plt.ylabel("State")
+plt.title("People Fully Vaccinated Per 100 People Per State")
+plt.show()
+# %% [markdown]
+# From the above chart, we see a dramatically different picture than the first comparison. Here we can see that there's a more gradual difference between the the amount of people fully vaccinated in each state. More importantly, we can see that the leaders of states that are fully vaccinated have changed. Maine, Connecticut, Vermont, Massachusetts, and Rhode Island have the highest amount of people fully vaccinated per 100 people in their population.
 # %% [markdown]
 # ## 5. Hypothesis Testing and Machine Learning
 # %% [markdown]
