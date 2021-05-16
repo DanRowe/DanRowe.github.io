@@ -33,6 +33,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from pandas.core.frame import DataFrame
 import sklearn
 from sklearn.linear_model import LinearRegression
 # %% [markdown]
@@ -42,6 +43,8 @@ from sklearn.linear_model import LinearRegression
 # %% [markdown]
 # #### 3.1.1. Election Data
 # For election data, we'll be using data from the [MIT Election Data and Science Lab](https://electionlab.mit.edu/data) for 2020 election results. This lab focusing on collecting and analyzing election data to apply scientific research to the democracy of the United States.
+#
+# MIT Election Data and Science Lab, 2017, "U.S. President 1976–2020", https://doi.org/10.7910/DVN/42MVDX, Harvard Dataverse, V6, UNF:6:4KoNz9KgTkXy0ZBxJ9ZkOw==
 # %%
 elections = pd.read_csv("./data/1976-2020-president.csv")
 # remove all other years except 2020
@@ -50,6 +53,8 @@ elections.head()
 # %% [markdown]
 # #### 3.1.2. Vaccination Data
 # For COVID vaccine data we're going to use [the vaccination dataset](https://github.com/owid/covid-19-data/tree/master/public/data/vaccinations) from [Our World in Data](https://ourworldindata.org/coronavirus). Our World in Data is an organization that focuses on gathering data and making it publicly available to facilitate research "[to make progress against the world's largest problems](https://ourworldindata.org/about#:~:text=Research%20and%20data%20to%20make%20progress%20against%20the%20world%E2%80%99s%20largest%20problems)." The data in this dataset comes directly from the CDC and the downloaded copy used for this project was last updated 5/15/21.
+#
+# Mathieu, E., Ritchie, H., Ortiz-Ospina, E. et al. A global database of COVID-19 vaccinations. Nat Hum Behav (2021). https://doi.org/10.1038/s41562-021-01122-8
 # %%
 stateVaccines = pd.read_csv("./data/us_state_vaccinations.csv")
 stateVaccines.info()
@@ -58,7 +63,25 @@ stateVaccines.info()
 # %% [markdown]
 # There's some columns in the election dataset that we don't need, so we're going to get rid of those.
 # %%
-elections = elections[["state", "candidatevotes", "totalvotes", "party_simplified"]]
+elections = pd.DataFrame(
+    elections[["state", "candidatevotes", "totalvotes", "party_simplified"]])
+elections.head()
+# %% [markdown]
+# Let's also calculate the party that had the most votes for each state to use later.
+# %%
+idx = elections.groupby(["state"])["candidatevotes"].transform(
+    max) == elections["candidatevotes"]
+majority = elections[idx][["state", "party_simplified"]].rename(
+    columns={"party_simplified": "p"})
+elections["majority_party"] = majority["p"]
+elections.head()
+# %% [markdown]
+# Now we need to combine every state into one row so it's easier to use and rename the state column to location to match the vaccination dataset.
+# %%
+for i, row in elections.iterrows():
+    elections.at[i, row["party_simplified"]+"_votes"] = row["candidatevotes"]
+elections = elections.groupby("state").first().drop(
+    columns=["party_simplified", "candidatevotes"]).rename(columns={"state": "location"})
 elections.head()
 # %% [markdown]
 # ## 4. Exploratory Data Analysis
