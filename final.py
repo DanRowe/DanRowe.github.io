@@ -12,7 +12,6 @@
 #     - [3.1.2. Vaccination Data](#312-vaccination-data)
 #   - [3.2. Tidying the Data](#32-tidying-the-data)
 # - [4. Exploratory Data Analysis](#4-exploratory-data-analysis)
-# - [5. Hypothesis Testing and Machine Learning](#5-hypothesis-testing-and-machine-learning)
 # - [6. Conclusion](#6-conclusion)
 # %% [markdown]
 # ## 1. Introduction
@@ -81,7 +80,8 @@ elections.head()
 # Now we need to combine every state into one row so it's easier to use and rename the state column to location to match the vaccination dataset.
 # %%
 for i, row in elections.iterrows():
-    elections.at[i, row["party_simplified"]+"_votes"] = row["candidatevotes"]
+    elections.at[i, row["party_simplified"] +
+                 "_percent"] = row["candidatevotes"]/row["totalvotes"]*100
 elections = elections.groupby("state").first().drop(
     columns=["party_simplified", "candidatevotes"]).reset_index().rename(columns={"state": "location"})
 elections.head()
@@ -100,7 +100,10 @@ for i, row in vaccinations.iterrows():
     location = row["location"].upper()
     if (location == "NEW YORK STATE"):
         location = "NEW YORK"
-    party = majority[majority["state"] == location]["p"].iloc[0]
+    stateElection = elections[elections["location"] == location]
+    party = stateElection["majority_party"].iloc[0]
+    vaccinations.at[i,
+                    "DEMOCRAT_percent"] = stateElection["DEMOCRAT_percent"].iloc[0]
     vaccinations.at[i, "party"] = party
     color = "green"
     if (party == "REPUBLICAN"):
@@ -108,7 +111,8 @@ for i, row in vaccinations.iterrows():
     elif (party == "DEMOCRAT"):
         color = "blue"
     vaccinations.at[i, "color"] = color
-colors = vaccinations[["location", "color"]].set_index("location").to_dict()["color"]
+colors = vaccinations[["location", "color"]].set_index("location").to_dict()[
+    "color"]
 vaccinations.head()
 # %% [markdown]
 # Next, we need to make a dataset that contains the most recent data entry for convenience.
@@ -159,13 +163,19 @@ plt.show()
 # %%
 fig, ax = plt.subplots()
 # Republican states
-vaccinations.query("location == 'Florida'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, linestyle="dashed", label="Florida")
-vaccinations.query("location == 'Ohio'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, linestyle="dashed", label="Ohio")
-vaccinations.query("location == 'South Dakota'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, linestyle="dashed", label="South Dakota")
+vaccinations.query("location == 'Florida'").plot(
+    x="date", y="daily_vaccinations_per_million", ax=ax, linestyle="dashed", label="Florida")
+vaccinations.query("location == 'Ohio'").plot(
+    x="date", y="daily_vaccinations_per_million", ax=ax, linestyle="dashed", label="Ohio")
+vaccinations.query("location == 'South Dakota'").plot(
+    x="date", y="daily_vaccinations_per_million", ax=ax, linestyle="dashed", label="South Dakota")
 # Democrat states
-vaccinations.query("location == 'Maine'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, label="Maine")
-vaccinations.query("location == 'New Hampshire'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, label="New Hampshire")
-vaccinations.query("location == 'Vermont'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, label="Vermont")
+vaccinations.query("location == 'Maine'").plot(
+    x="date", y="daily_vaccinations_per_million", ax=ax, label="Maine")
+vaccinations.query("location == 'New Hampshire'").plot(
+    x="date", y="daily_vaccinations_per_million", ax=ax, label="New Hampshire")
+vaccinations.query("location == 'Vermont'").plot(
+    x="date", y="daily_vaccinations_per_million", ax=ax, label="Vermont")
 plt.ylabel("People Vaccinated Per Million")
 plt.xlabel("Day")
 plt.title("(Dashed = Republican)")
@@ -173,7 +183,26 @@ plt.suptitle("Republican vs Democratic States Daily Vaccinated")
 plt.show()
 # %% [markdown]
 # The states chosen for the chart above were the states with the steepest incline for daily vaccination rate. The dashed lines on the chart represent states that voted primarily democratic. From this chart, we can observe that democratic states stay slightly above republican states in daily vaccination rates. However, the lines stay fairly even with each other until March where the democratic states began administering vaccinations at an increased rate.
+# 
+# Let's group them together to make this a little easier to see.
+# %%
+maxVax = vaccinations.groupby("location").agg(max)
+plt.figure()
+x = maxVax["people_fully_vaccinated_per_hundred"]
+y = maxVax["DEMOCRAT_percent"]
+sns.scatterplot(data=maxVax, x="people_fully_vaccinated_per_hundred",
+                y="DEMOCRAT_percent", hue="party", palette=["red", "blue"])
+# plt.scatter(x, y, alpha=0.7, c="Animation", colormap="jet")
+m, b = np.polyfit(x, y, 1)
+plt.plot(x, m*x + b, color="red")
+plt.ylabel("Democratic Vote %")
+plt.xlabel("People Fully Vaccinated per Hundred")
+plt.title("Democratic Vote % vs People Fully Vaccinated in Each State")
+plt.show()
 # %% [markdown]
-# ## 5. Hypothesis Testing and Machine Learning
+# From the chart above, it is clear that states that voted democratic are more likely to have a higher population of vaccinated people.
 # %% [markdown]
 # ## 6. Conclusion
+# Looking at the charts and the data explored above, it is plausible that the vaccination rates are political. We saw a majority of democratic states having higher vaccination statistics than republican states. 
+
+# %%
