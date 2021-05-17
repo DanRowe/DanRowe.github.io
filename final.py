@@ -12,6 +12,7 @@
 #     - [3.1.2. Vaccination Data](#312-vaccination-data)
 #   - [3.2. Tidying the Data](#32-tidying-the-data)
 # - [4. Exploratory Data Analysis](#4-exploratory-data-analysis)
+# - [5. Hypothesis Testing and Machine Learning](#5-hypothesis-testing-and-machine-learning)
 # - [6. Conclusion](#6-conclusion)
 # %% [markdown]
 # ## 1. Introduction
@@ -28,6 +29,7 @@
 # - Scikit-learn: To create a predictive model
 # - [us](https://github.com/unitedstates/python-us): Detailed state information
 # %%
+import statsmodels.api as sm
 from numpy.core.fromnumeric import mean
 from numpy.lib.function_base import average
 import pandas as pd
@@ -201,6 +203,20 @@ plt.title("Democratic Vote % vs People Fully Vaccinated in Each State")
 plt.show()
 # %% [markdown]
 # From the chart above, it is clear that states that voted democratic are more likely to have a higher population of vaccinated people.
+# %% [markdown]
+# ## 5. Hypothesis Testing and Machine Learning
+# %%
+X = maxVax[["people_fully_vaccinated_per_hundred"]]
+y = maxVax[["DEMOCRAT_percent"]]
+reg = LinearRegression().fit(X, y)
+print(f"y = {round(reg.coef_[0][0], 4)} * x + {round(reg.intercept_[0], 4)}")
+# %%
+X2 = sm.add_constant(X)
+est = sm.OLS(y, X2).fit()
+p_value = est.summary2().tables[1]["P>|t|"][1]
+print(f"p-value: {p_value}")
+# %% [markdown]
+# Since the p value is greater than 0, there is likely to be a relationship between democratic voting and people fully vaccinated per hundred. Therefore, I reject the null hypothesis of no relationship.
 # %% [markdown]
 # ## 6. Conclusion
 # Looking at the charts and the data explored above, it is plausible that the vaccination rates are political. We saw a majority of democratic states having higher vaccination statistics than republican states. 
