@@ -29,6 +29,8 @@
 # - Scikit-learn: To create a predictive model
 # - [us](https://github.com/unitedstates/python-us): Detailed state information
 # %%
+from numpy.core.fromnumeric import mean
+from numpy.lib.function_base import average
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -84,12 +86,13 @@ elections = elections.groupby("state").first().drop(
     columns=["party_simplified", "candidatevotes"]).reset_index().rename(columns={"state": "location"})
 elections.head()
 # %% [markdown]
-# For vaccination data, we need to remove federal entities like the *Dept of Defense* to ensure the dataset is only states.
+# For vaccination data, we need to remove federal entities like the *Dept of Defense* to ensure the dataset is only states. Also, make sure that dates are in datetime format.
 # %%
 states = [state.name for state in us.STATES]
 states.append("New York State")
 vaccinations = pd.DataFrame(
     vaccinations[vaccinations["location"].isin(states)])
+vaccinations["date"] = pd.to_datetime(vaccinations["date"])
 # %% [markdown]
 # Now let's add the election data to the vaccination dataset.
 # %%
@@ -105,6 +108,7 @@ for i, row in vaccinations.iterrows():
     elif (party == "DEMOCRAT"):
         color = "blue"
     vaccinations.at[i, "color"] = color
+colors = vaccinations[["location", "color"]].set_index("location").to_dict()["color"]
 vaccinations.head()
 # %% [markdown]
 # Next, we need to make a dataset that contains the most recent data entry for convenience.
@@ -115,13 +119,13 @@ recentVax = vaccinations[idx]
 recentVax.info()
 # %% [markdown]
 # ## 4. Exploratory Data Analysis
-# Now that the data is easier to manipulate, lets explore the vaccination data and the relationships between different columns. We'll start by looking at the amount of people fully vaccinated in each state.
+# Now that the data is easier to manipulate, lets explore the vaccination data and the relationships between different columns. We'll start by looking at the amount of people fully vaccinated in each state colored by political party.
 # %%
 recentVax = recentVax.sort_values(
     by=["people_fully_vaccinated"], ascending=False)
 plt.figure(figsize=(8, 32))
 sns.barplot(y=recentVax["location"],
-            x=recentVax["people_fully_vaccinated"])
+            x=recentVax["people_fully_vaccinated"], palette=colors)
 plt.xlabel("People Fully Vaccinated")
 plt.ylabel("State")
 plt.title("People Fully Vaccinated By State")
@@ -135,23 +139,40 @@ recentVax = recentVax.sort_values(
     by=["people_fully_vaccinated_per_hundred"], ascending=False)
 plt.figure(figsize=(8, 32))
 sns.barplot(y=recentVax["location"],
-            x=recentVax["people_fully_vaccinated_per_hundred"])
+            x=recentVax["people_fully_vaccinated_per_hundred"], palette=colors)
 plt.xlabel("People Fully Vaccinated per 100 People")
 plt.ylabel("State")
 plt.title("People Fully Vaccinated Per 100 People By State")
 plt.show()
 # %% [markdown]
-# From the above chart, we see a dramatically different picture than the first comparison. Here we can see that there's a more gradual difference between the the amount of people fully vaccinated in each state. More importantly, we can see that the leaders of states that are fully vaccinated have changed. Maine, Connecticut, Vermont, Massachusetts, and Rhode Island have the highest amount of people fully vaccinated per 100 people in their population.
+# From the above chart, we see a dramatically different picture than the first comparison. Here we can see that there's a more gradual difference between the the amount of people fully vaccinated in each state. More importantly, we can see that the leaders of states that are fully vaccinated have changed. Maine, Connecticut, Vermont, Massachusetts, and Rhode Island have the highest amount of people fully vaccinated per 100 people in their population. Also, Democratic states are leading the amount of people fully vaccinated with the closest Republican state being in 12th
 # %% [markdown]
 # Now, let's take a look at the rate at which each state administered the vaccination.
 # %%
 vaccinations.pivot(index="date", columns="location",
-                   values="daily_vaccinations_per_million").plot(subplots=True, sharey=True, layout=(10, 5), figsize=(25, 25))
+                   values="daily_vaccinations_per_million").plot(subplots=True, sharey=True, layout=(10, 5), figsize=(25, 25), color=colors)
 plt.ylabel("People Vaccinated Per Million")
 plt.xlabel("Day")
 plt.show()
 # %% [markdown]
-# Now we need to calculate averages to figure out stuff to compare easy
+# The above chart shows that a lot of the charts start off as an incline and then taper off about 75% of the way through. Some states like New Hampshire had bursts of increases and Maine appears to be increasing steadily. Let's pick some of the interesting charts and look at them a bit closer.
+# %%
+fig, ax = plt.subplots()
+# Republican states
+vaccinations.query("location == 'Florida'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, linestyle="dashed", label="Florida")
+vaccinations.query("location == 'Ohio'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, linestyle="dashed", label="Ohio")
+vaccinations.query("location == 'South Dakota'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, linestyle="dashed", label="South Dakota")
+# Democrat states
+vaccinations.query("location == 'Maine'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, label="Maine")
+vaccinations.query("location == 'New Hampshire'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, label="New Hampshire")
+vaccinations.query("location == 'Vermont'").plot(x="date", y="daily_vaccinations_per_million", ax=ax, label="Vermont")
+plt.ylabel("People Vaccinated Per Million")
+plt.xlabel("Day")
+plt.title("(Dashed = Republican)")
+plt.suptitle("Republican vs Democratic States Daily Vaccinated")
+plt.show()
+# %% [markdown]
+# The states chosen for the chart above were the states with the steepest incline for daily vaccination rate. The dashed lines on the chart represent states that voted primarily democratic. From this chart, we can observe that democratic states stay slightly above republican states in daily vaccination rates. However, the lines stay fairly even with each other until March where the democratic states began administering vaccinations at an increased rate.
 # %% [markdown]
 # ## 5. Hypothesis Testing and Machine Learning
 # %% [markdown]
